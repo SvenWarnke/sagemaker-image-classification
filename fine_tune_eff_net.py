@@ -4,10 +4,41 @@ import numpy as np
 import tensorflow as tf
 import keras
 from keras import backend as K
-from keras.models import Sequential
-from keras.layers import Dense, Dropout, Activation, Flatten, BatchNormalization, Conv2D, MaxPooling2D
+from keras import models
+from keras import layers
 from keras.optimizers import SGD
 from keras.utils import multi_gpu_model
+
+from tensorflow.keras import applications
+
+
+def get_model(image_size):
+    inputs = layers.Input(shape=(image_size, image_size, 3))
+    
+    Net = applications.inception_v3.InceptionV3
+    base_efficient_net = Net(weights='imagenet', input_tensor=inputs, include_top=False)
+
+    base_efficient_net.trainable = False
+
+    x = base_efficient_net.output
+    x = layers.GlobalAveragePooling2D()(x)
+
+    x = layers.BatchNormalization()(x)
+
+    top_dropout_rate = 0.2
+    x = layers.Dropout(top_dropout_rate, name="top_dropout")(x)
+    predictions = layers.Dense(2, activation='softmax')(x)
+
+    efficient_net = models.Model(inputs=base_efficient_net.input, outputs=predictions)
+
+    efficient_net.compile(
+        optimizer='adam',
+        loss='categorical_crossentropy',
+        metrics=['accuracy']
+    )
+    return efficient_net
+
+
 
 if __name__ == '__main__':
         
@@ -67,28 +98,7 @@ if __name__ == '__main__':
     y_train = keras.utils.to_categorical(y_train, num_classes)
     y_val   = keras.utils.to_categorical(y_val, num_classes)
     
-    model = Sequential()
-    
-    # 1st convolution block
-    model.add(Conv2D(64, kernel_size=(3,3), padding='same', input_shape=input_shape))
-    model.add(BatchNormalization(axis=batch_norm_axis))
-    model.add(Activation('relu'))
-    model.add(MaxPooling2D(pool_size=(2,2), strides=2))
-    
-    # 2nd convolution block
-    model.add(Conv2D(128, kernel_size=(3,3), padding='valid'))
-    model.add(BatchNormalization(axis=batch_norm_axis))
-    model.add(Activation('relu'))
-    model.add(MaxPooling2D(pool_size=(2,2), strides=2))
-
-    # Fully connected block
-    model.add(Flatten())
-    model.add(Dense(512))
-    model.add(Activation('relu'))
-    model.add(Dropout(0.3))
-
-    # Output layer
-    model.add(Dense(num_classes, activation='softmax'))
+    model = get_model(image_size=28)
     
     print(model.summary())
 
@@ -107,11 +117,6 @@ if __name__ == '__main__':
     score = model.evaluate(x_val, y_val, verbose=0)
     print('Validation loss    :', score[0])
     print('Validation accuracy:', score[1])
-    
-    # save Keras model for Tensorflow Serving
-    sess = K.get_session()
-    print(f"model_dir: {model_dir}")
-    
     
     save_path = model_dir + '/model'
     
