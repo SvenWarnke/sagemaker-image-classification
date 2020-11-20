@@ -12,8 +12,8 @@ from keras.utils import multi_gpu_model
 from tensorflow.keras import applications
 
 
-def get_model(image_size):
-    inputs = layers.Input(shape=(image_size, image_size, 3))
+def get_model(image_shape):
+    inputs = layers.Input(shape=(*image_shape, 3))
     
     Net = applications.inception_v3.InceptionV3
     base_efficient_net = Net(weights='imagenet', input_tensor=inputs, include_top=False)
@@ -39,6 +39,39 @@ def get_model(image_size):
     return efficient_net
 
 
+def get_train_generator(directory, image_shape, batch_size):
+    train_datagen = image.ImageDataGenerator(
+        rotation_range=40,
+        width_shift_range=0.2,
+        height_shift_range=0.2,
+        rescale=1. / 255,
+        shear_range=0.2,
+        zoom_range=0.2,
+        horizontal_flip=True,
+        fill_mode='nearest'
+    )
+
+    train_generator = train_datagen.flow_from_directory(
+        directory / 'train',  # this is the target directory
+        target_size=image_shape,  # all images will be resized 
+        batch_size=batch_size,
+        class_mode='categorical'
+    )
+
+    return train_generator
+
+
+def get_validation_generator(directory, image_shape, batch_size):
+    test_datagen = image.ImageDataGenerator(rescale=1. / 255)
+
+    # this is a similar generator, for validation data
+    validation_generator = test_datagen.flow_from_directory(
+        directory / 'test',
+        target_size=image_shape,
+        batch_size=batch_size,
+        class_mode='categorical')
+    return validation_generator
+
 
 if __name__ == '__main__':
         
@@ -62,61 +95,82 @@ if __name__ == '__main__':
     training_dir   = args.training
     validation_dir = args.validation
     
-    x_train = np.load(os.path.join(training_dir, 'training.npz'))['image']
-    y_train = np.load(os.path.join(training_dir, 'training.npz'))['label']
-    x_val  = np.load(os.path.join(validation_dir, 'validation.npz'))['image']
-    y_val  = np.load(os.path.join(validation_dir, 'validation.npz'))['label']
-    
     # input image dimensions
-    img_rows, img_cols = 28, 28
-
-    # Tensorflow needs image channels last, e.g. (batch size, width, height, channels)
-    K.set_image_data_format('channels_last')  
-    print(K.image_data_format())
-
-    if K.image_data_format() == 'channels_first':
-        print("Incorrect configuration: Tensorflow needs channels_last")
-    else:
-        # channels last
-        x_train = x_train.reshape(x_train.shape[0], img_rows, img_cols, 1)
-        x_val = x_val.reshape(x_val.shape[0], img_rows, img_cols, 1)
-        input_shape = (img_rows, img_cols, 1)
-        batch_norm_axis=-1
-
-    print('x_train shape:', x_train.shape)
-    print(x_train.shape[0], 'train samples')
-    print(x_val.shape[0], 'test samples')
+    image_shape = (224, 224)
     
-    # Normalize pixel values
-    x_train  = x_train.astype('float32')
-    x_val    = x_val.astype('float32')
-    x_train /= 255
-    x_val   /= 255
     
-    # Convert class vectors to binary class matrices
-    num_classes = 10
-    y_train = keras.utils.to_categorical(y_train, num_classes)
-    y_val   = keras.utils.to_categorical(y_val, num_classes)
     
-    model = get_model(image_size=28)
+    train_generator = get_train_generator(
+        directory=training_dir,
+        image_shape=image_shape,
+        batch_size=batch_size
+    )
+    
+    validation_generator = get_validation_generator(
+        directory=validation_dir,
+        image_shape=image_shape,
+        batch_size=batch_size
+    )
+    
+#     x_train = np.load(os.path.join(training_dir, 'training.npz'))['image']
+#     y_train = np.load(os.path.join(training_dir, 'training.npz'))['label']
+#     x_val  = np.load(os.path.join(validation_dir, 'validation.npz'))['image']
+#     y_val  = np.load(os.path.join(validation_dir, 'validation.npz'))['label']
+    
+    
+
+#     # Tensorflow needs image channels last, e.g. (batch size, width, height, channels)
+#     K.set_image_data_format('channels_last')  
+#     print(K.image_data_format())
+
+#     if K.image_data_format() == 'channels_first':
+#         print("Incorrect configuration: Tensorflow needs channels_last")
+#     else:
+#         # channels last
+#         x_train = x_train.reshape(x_train.shape[0], img_rows, img_cols, 1)
+#         x_val = x_val.reshape(x_val.shape[0], img_rows, img_cols, 1)
+#         input_shape = (img_rows, img_cols, 1)
+#         batch_norm_axis=-1
+
+#     print('x_train shape:', x_train.shape)
+#     print(x_train.shape[0], 'train samples')
+#     print(x_val.shape[0], 'test samples')
+    
+#     # Normalize pixel values
+#     x_train  = x_train.astype('float32')
+#     x_val    = x_val.astype('float32')
+#     x_train /= 255
+#     x_val   /= 255
+    
+#     # Convert class vectors to binary class matrices
+#     num_classes = 10
+#     y_train = keras.utils.to_categorical(y_train, num_classes)
+#     y_val   = keras.utils.to_categorical(y_val, num_classes)
+    
+    model = get_model(image_shape=image_shape)
     
     print(model.summary())
 
     if gpu_count > 1:
         model = multi_gpu_model(model, gpus=gpu_count)
-        
-    model.compile(loss=keras.losses.categorical_crossentropy,
-                  optimizer=SGD(lr=lr, decay=1e-6, momentum=0.9, nesterov=True),
-                  metrics=['accuracy'])
     
-    model.fit(x_train, y_train, batch_size=batch_size,
-                  validation_data=(x_val, y_val), 
-                  epochs=epochs,
-                  verbose=1)
     
-    score = model.evaluate(x_val, y_val, verbose=0)
-    print('Validation loss    :', score[0])
-    print('Validation accuracy:', score[1])
+     model.fit(
+        train_generator,
+        steps_per_epoch=1,
+        epochs=epochs,
+        validation_data=validation_generator,
+        validation_steps=1,
+    )
+    
+#     model.fit(x_train, y_train, batch_size=batch_size,
+#                   validation_data=(x_val, y_val), 
+#                   epochs=epochs,
+#                   verbose=1)
+    
+#     score = model.evaluate(x_val, y_val, verbose=0)
+#     print('Validation loss    :', score[0])
+#     print('Validation accuracy:', score[1])
     
     save_path = model_dir + '/model'
     
