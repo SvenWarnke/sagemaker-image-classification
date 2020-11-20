@@ -9,13 +9,15 @@ from keras import layers
 from keras.optimizers import SGD
 from keras.utils import multi_gpu_model
 
+from subprocess import call
+call("pip install efficientnet".split(" "))
+
 import efficientnet.keras as efn
 #from tensorflow.keras import applications
 from tensorflow.keras.preprocessing import image
 
 
-from subprocess import call
-call("pip install efficientnet".split(" "))
+
 
 def get_model(image_shape):
     inputs = layers.Input(shape=(*image_shape, 3))
