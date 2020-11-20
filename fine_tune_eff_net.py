@@ -9,13 +9,18 @@ from keras import layers
 from keras.optimizers import SGD
 from keras.utils import multi_gpu_model
 
-from tensorflow.keras import applications
+import efficientnet.keras as efn
+#from tensorflow.keras import applications
+from tensorflow.keras.preprocessing import image
 
+
+from subprocess import call
+call("pip install efficientnet".split(" "))
 
 def get_model(image_shape):
     inputs = layers.Input(shape=(*image_shape, 3))
     
-    Net = applications.inception_v3.InceptionV3
+    Net = efn.EfficientNetB0
     base_efficient_net = Net(weights='imagenet', input_tensor=inputs, include_top=False)
 
     base_efficient_net.trainable = False
@@ -52,7 +57,7 @@ def get_train_generator(directory, image_shape, batch_size):
     )
 
     train_generator = train_datagen.flow_from_directory(
-        directory / 'train',  # this is the target directory
+        directory,  # this is the target directory
         target_size=image_shape,  # all images will be resized 
         batch_size=batch_size,
         class_mode='categorical'
@@ -66,7 +71,7 @@ def get_validation_generator(directory, image_shape, batch_size):
 
     # this is a similar generator, for validation data
     validation_generator = test_datagen.flow_from_directory(
-        directory / 'test',
+        directory,
         target_size=image_shape,
         batch_size=batch_size,
         class_mode='categorical')
@@ -155,7 +160,7 @@ if __name__ == '__main__':
         model = multi_gpu_model(model, gpus=gpu_count)
     
     
-     model.fit(
+    model.fit(
         train_generator,
         steps_per_epoch=1,
         epochs=epochs,
