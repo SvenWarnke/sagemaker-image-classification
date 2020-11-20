@@ -2,15 +2,16 @@ import argparse, os
 import numpy as np
 
 import tensorflow as tf
-import keras
-from keras import backend as K
-from keras import models
-from keras import layers
-from keras.optimizers import SGD
-from keras.utils import multi_gpu_model
+
+from tensorflow.keras import models
+from tensorflow.keras import layers
+#from tensorflow.keras.optimizers import SGD
+from tensorflow.keras.utils import multi_gpu_model
 
 from subprocess import call
 call("pip install efficientnet".split(" "))
+call("pip install keras".split(" "))
+
 
 import efficientnet.keras as efn
 #from tensorflow.keras import applications
@@ -86,7 +87,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--epochs', type=int, default=10)
     parser.add_argument('--learning-rate', type=float, default=0.01)
-    parser.add_argument('--batch-size', type=int, default=128)
+    parser.add_argument('--batch-size', type=int, default=16)
     parser.add_argument('--gpu-count', type=int, default=os.environ['SM_NUM_GPUS'])
     parser.add_argument('--model-dir', type=str, default=os.environ['SM_MODEL_DIR'])
     parser.add_argument('--training', type=str, default=os.environ['SM_CHANNEL_TRAINING'])
@@ -119,41 +120,6 @@ if __name__ == '__main__':
         batch_size=batch_size
     )
     
-#     x_train = np.load(os.path.join(training_dir, 'training.npz'))['image']
-#     y_train = np.load(os.path.join(training_dir, 'training.npz'))['label']
-#     x_val  = np.load(os.path.join(validation_dir, 'validation.npz'))['image']
-#     y_val  = np.load(os.path.join(validation_dir, 'validation.npz'))['label']
-    
-    
-
-#     # Tensorflow needs image channels last, e.g. (batch size, width, height, channels)
-#     K.set_image_data_format('channels_last')  
-#     print(K.image_data_format())
-
-#     if K.image_data_format() == 'channels_first':
-#         print("Incorrect configuration: Tensorflow needs channels_last")
-#     else:
-#         # channels last
-#         x_train = x_train.reshape(x_train.shape[0], img_rows, img_cols, 1)
-#         x_val = x_val.reshape(x_val.shape[0], img_rows, img_cols, 1)
-#         input_shape = (img_rows, img_cols, 1)
-#         batch_norm_axis=-1
-
-#     print('x_train shape:', x_train.shape)
-#     print(x_train.shape[0], 'train samples')
-#     print(x_val.shape[0], 'test samples')
-    
-#     # Normalize pixel values
-#     x_train  = x_train.astype('float32')
-#     x_val    = x_val.astype('float32')
-#     x_train /= 255
-#     x_val   /= 255
-    
-#     # Convert class vectors to binary class matrices
-#     num_classes = 10
-#     y_train = keras.utils.to_categorical(y_train, num_classes)
-#     y_val   = keras.utils.to_categorical(y_val, num_classes)
-    
     model = get_model(image_shape=image_shape)
     
     print(model.summary())
@@ -169,15 +135,6 @@ if __name__ == '__main__':
         validation_data=validation_generator,
         validation_steps=1,
     )
-    
-#     model.fit(x_train, y_train, batch_size=batch_size,
-#                   validation_data=(x_val, y_val), 
-#                   epochs=epochs,
-#                   verbose=1)
-    
-#     score = model.evaluate(x_val, y_val, verbose=0)
-#     print('Validation loss    :', score[0])
-#     print('Validation accuracy:', score[1])
     
     save_path = model_dir + '/model'
     
