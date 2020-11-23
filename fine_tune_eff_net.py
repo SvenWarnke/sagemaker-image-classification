@@ -124,7 +124,10 @@ if __name__ == '__main__':
         model = multi_gpu_model(model, gpus=gpu_count)
     
     
-    tb_callback = callbacks.TensorBoard(log_dir=log_dir)
+    tb_callback = callbacks.TensorBoard(
+        log_dir=log_dir,
+        histogram_freq=1,
+    )
         
     
     model.fit(
