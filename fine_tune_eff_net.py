@@ -1,23 +1,19 @@
 import argparse, os
 import numpy as np
-
 import tensorflow as tf
 
 from tensorflow.keras import models
 from tensorflow.keras import layers
-#from tensorflow.keras.optimizers import SGD
+from tensorflow.keras import callbacks
 from tensorflow.keras.utils import multi_gpu_model
-
-from subprocess import call
-call("pip install efficientnet".split(" "))
-call("pip install keras".split(" "))
-
-
-import efficientnet.keras as efn
-#from tensorflow.keras import applications
 from tensorflow.keras.preprocessing import image
 
 
+from subprocess import call
+call("pip install efficientnet".split(" "))
+call("pip install keras".split(" "))  # required for efficientnet.keras
+
+import efficientnet.keras as efn
 
 
 def get_model(image_shape):
@@ -92,6 +88,7 @@ if __name__ == '__main__':
     parser.add_argument('--model-dir', type=str, default=os.environ['SM_MODEL_DIR'])
     parser.add_argument('--training', type=str, default=os.environ['SM_CHANNEL_TRAINING'])
     parser.add_argument('--validation', type=str, default=os.environ['SM_CHANNEL_VALIDATION'])
+    parser.add_argument('--log-dir', type=str, default='sagemaker-us-east-2-475496805360/tensorboard_logs/fit')
     
     args, _ = parser.parse_known_args()
     
@@ -102,11 +99,10 @@ if __name__ == '__main__':
     model_dir  = args.model_dir
     training_dir   = args.training
     validation_dir = args.validation
+    log_dir = args.log_dir
     
     # input image dimensions
     image_shape = (224, 224)
-    
-    
     
     train_generator = get_train_generator(
         directory=training_dir,
@@ -128,12 +124,16 @@ if __name__ == '__main__':
         model = multi_gpu_model(model, gpus=gpu_count)
     
     
+    tb_callback = callbacks.TensorBoard(log_dir=log_dir)
+        
+    
     model.fit(
         train_generator,
         steps_per_epoch=1,
         epochs=epochs,
         validation_data=validation_generator,
         validation_steps=1,
+        callbacks=[tb_callback]
     )
     
     save_path = model_dir + '/model'
