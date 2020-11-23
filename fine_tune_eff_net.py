@@ -88,7 +88,7 @@ if __name__ == '__main__':
     parser.add_argument('--model-dir', type=str, default=os.environ['SM_MODEL_DIR'])
     parser.add_argument('--training', type=str, default=os.environ['SM_CHANNEL_TRAINING'])
     parser.add_argument('--validation', type=str, default=os.environ['SM_CHANNEL_VALIDATION'])
-    parser.add_argument('--log-dir', type=str, default='sagemaker-us-east-2-475496805360/tensorboard_logs/fit')
+    parser.add_argument('--log-dir', type=str, default='s3://sagemaker-us-east-2-475496805360/tensorboard_logs/fit')
     
     args, _ = parser.parse_known_args()
     
