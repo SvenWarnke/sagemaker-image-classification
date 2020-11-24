@@ -10,10 +10,9 @@ from tensorflow.keras.preprocessing import image
 
 
 from subprocess import call
-call("pip install efficientnet".split(" "))
-call("pip install keras".split(" "))  # required for efficientnet.keras
+call("pip install efficientnet==1.1.1".split(" "))
 
-import efficientnet.keras as efn
+import efficientnet.tfkeras as efn
 
 
 def get_model(image_shape):
@@ -88,7 +87,7 @@ if __name__ == '__main__':
     parser.add_argument('--model-dir', type=str, default=os.environ['SM_MODEL_DIR'])
     parser.add_argument('--training', type=str, default=os.environ['SM_CHANNEL_TRAINING'])
     parser.add_argument('--validation', type=str, default=os.environ['SM_CHANNEL_VALIDATION'])
-    parser.add_argument('--log-dir', type=str, default='s3://sagemaker-us-east-2-475496805360/tensorboard_logs/fit')
+    parser.add_argument('--log-dir', type=str) # , default='s3://sagemaker-us-east-2-475496805360/tensorboard_logs/fit'
     parser.add_argument('--steps-per-epoch', type=int, default=10)
     
     args, _ = parser.parse_known_args()
@@ -102,6 +101,7 @@ if __name__ == '__main__':
     validation_dir = args.validation
     log_dir = args.log_dir
     steps_per_epoch = args.steps_per_epoch
+    
     
     # input image dimensions
     image_shape = (224, 224)
