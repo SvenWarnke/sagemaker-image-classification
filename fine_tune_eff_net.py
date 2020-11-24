@@ -89,6 +89,7 @@ if __name__ == '__main__':
     parser.add_argument('--training', type=str, default=os.environ['SM_CHANNEL_TRAINING'])
     parser.add_argument('--validation', type=str, default=os.environ['SM_CHANNEL_VALIDATION'])
     parser.add_argument('--log-dir', type=str, default='s3://sagemaker-us-east-2-475496805360/tensorboard_logs/fit')
+    parser.add_argument('--steps-per-epoch', type=int, default=10)
     
     args, _ = parser.parse_known_args()
     
@@ -100,6 +101,7 @@ if __name__ == '__main__':
     training_dir   = args.training
     validation_dir = args.validation
     log_dir = args.log_dir
+    steps_per_epoch = args.steps_per_epoch
     
     # input image dimensions
     image_shape = (224, 224)
@@ -132,7 +134,7 @@ if __name__ == '__main__':
     
     model.fit(
         train_generator,
-        steps_per_epoch=1,
+        steps_per_epoch=steps_per_epoch,
         epochs=epochs,
         validation_data=validation_generator,
         validation_steps=1,
