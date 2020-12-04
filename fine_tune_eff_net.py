@@ -96,7 +96,7 @@ if __name__ == '__main__':
     parser.add_argument('--validation', type=str, default=os.environ['SM_CHANNEL_VALIDATION'])
     parser.add_argument('--log-dir', type=str)
     parser.add_argument('--steps-per-epoch', type=int, default=10)
-    parser.add_argument('--model', type=str, default=)
+    parser.add_argument('--model', type=str)
     
     args, _ = parser.parse_known_args()
     
