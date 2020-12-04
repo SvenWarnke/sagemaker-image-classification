@@ -7,6 +7,7 @@ from tensorflow.keras import layers
 from tensorflow.keras import callbacks
 from tensorflow.keras.utils import multi_gpu_model
 from tensorflow.keras.preprocessing import image
+from tensorflow.keras import applications
 
 
 from subprocess import call
@@ -14,11 +15,17 @@ call("pip install efficientnet==1.1.1".split(" "))
 
 import efficientnet.tfkeras as efn
 
+NETS = {
+    "EfficientNetB0": efn.EfficientNetB0,
+    "InceptionV3": applications.InceptionV3,
+    "MobileNetV2": applications.MobileNetV2,
+    "ResNet50": applications.ResNet50,
+}
 
-def get_model(image_shape):
+
+def get_model(Net, image_shape):
     inputs = layers.Input(shape=(*image_shape, 3))
     
-    Net = efn.EfficientNetB0
     base_efficient_net = Net(weights='imagenet', input_tensor=inputs, include_top=False)
 
     base_efficient_net.trainable = False
@@ -87,8 +94,9 @@ if __name__ == '__main__':
     parser.add_argument('--model-dir', type=str, default=os.environ['SM_MODEL_DIR'])
     parser.add_argument('--training', type=str, default=os.environ['SM_CHANNEL_TRAINING'])
     parser.add_argument('--validation', type=str, default=os.environ['SM_CHANNEL_VALIDATION'])
-    parser.add_argument('--log-dir', type=str) # , default='s3://sagemaker-us-east-2-475496805360/tensorboard_logs/fit'
+    parser.add_argument('--log-dir', type=str)
     parser.add_argument('--steps-per-epoch', type=int, default=10)
+    parser.add_argument('--model', type=str, default=)
     
     args, _ = parser.parse_known_args()
     
@@ -101,7 +109,7 @@ if __name__ == '__main__':
     validation_dir = args.validation
     log_dir = args.log_dir
     steps_per_epoch = args.steps_per_epoch
-    
+    Net = NETS[args.model]
     
     # input image dimensions
     image_shape = (224, 224)
@@ -118,7 +126,10 @@ if __name__ == '__main__':
         batch_size=batch_size
     )
     
-    model = get_model(image_shape=image_shape)
+    model = get_model(
+        image_shape=image_shape,
+        Net=Net
+    )
     
     print(model.summary())
 
