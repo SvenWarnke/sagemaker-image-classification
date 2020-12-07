@@ -149,9 +149,9 @@ if __name__ == '__main__':
     )
     
     checkpoint_cb = callbacks.ModelCheckpoint(
-        'model-{epoch:03d}-{acc:03f}-{val_acc:03f}.h5', 
+        'model-{epoch:03d}-{val_accuracy:03f}.h5', 
         save_best_only=True, 
-        monitor='val_acc'
+        monitor='val_accuracy'
     )
     
     model.fit(
