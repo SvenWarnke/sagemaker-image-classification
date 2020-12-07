@@ -10,13 +10,12 @@ from tensorflow.keras.preprocessing import image
 from tensorflow.keras import applications
 
 
-from subprocess import call
-call("pip install efficientnet==1.1.1".split(" "))
-
-import efficientnet.tfkeras as efn
+# from subprocess import call
+# call("pip install efficientnet==1.1.1".split(" "))
+# import efficientnet.tfkeras as efn
 
 NETS = {
-    "EfficientNetB0": efn.EfficientNetB0,
+#     "EfficientNetB0": efn.EfficientNetB0,
     "InceptionV3": applications.InceptionV3,
     "MobileNetV2": applications.MobileNetV2,
     "ResNet50": applications.ResNet50,
@@ -137,11 +136,23 @@ if __name__ == '__main__':
         model = multi_gpu_model(model, gpus=gpu_count)
     
     
-    tb_callback = callbacks.TensorBoard(
+    tensorboard_cb = callbacks.TensorBoard(
         log_dir=log_dir,
         histogram_freq=1,
     )
         
+    early_stopping_cb = callbacks.EarlyStopping(
+        monitor='val_loss', 
+        patience=10, 
+        verbose=0, 
+        mode='min'
+    )
+    
+    checkpoint_cb = callbacks.ModelCheckpoint(
+        'model-{epoch:03d}-{acc:03f}-{val_acc:03f}.h5', 
+        save_best_only=True, 
+        monitor='val_acc'
+    )
     
     model.fit(
         train_generator,
@@ -149,7 +160,11 @@ if __name__ == '__main__':
         epochs=epochs,
         validation_data=validation_generator,
         validation_steps=1,
-        callbacks=[tb_callback]
+        callbacks=[
+            tensorboard_cb,
+            early_stopping_cb,
+            checkpoint_cb
+        ]
     )
     
     save_path = model_dir + '/model'
