@@ -36,7 +36,7 @@ def get_model(Net, image_shape):
 
     top_dropout_rate = 0.2
     x = layers.Dropout(top_dropout_rate, name="top_dropout")(x)
-    predictions = layers.Dense(2, activation='softmax')(x)
+    predictions = layers.Dense(5, activation='softmax')(x)
 
     efficient_net = models.Model(inputs=base_efficient_net.input, outputs=predictions)
 
