@@ -10,12 +10,13 @@ from tensorflow.keras.preprocessing import image
 from tensorflow.keras import applications
 
 
-# from subprocess import call
-# call("pip install efficientnet==1.1.1".split(" "))
-# import efficientnet.tfkeras as efn
+from subprocess import call
+call("pip install efficientnet==1.1.1".split(" "))
+import efficientnet.tfkeras as efn
 
 NETS = {
 #     "EfficientNetB0": efn.EfficientNetB0,
+    "EfficientNetB5": efn.EfficientNetB5,
     "InceptionV3": applications.InceptionV3,
     "MobileNetV2": applications.MobileNetV2,
     "ResNet50": applications.ResNet50,
@@ -25,8 +26,11 @@ NETS = {
 def get_model(Net, image_shape):
     inputs = layers.Input(shape=(*image_shape, 3))
     
-    base_efficient_net = Net(weights='imagenet', input_tensor=inputs, include_top=False)
-
+    base_efficient_net = Net(weights='imagenet', include_top=False)
+    
+    # training=False sets batch-normalization layers in inference mode (note difference to setting trainable to false) 
+    base_efficient_net = base_efficient_net(inputs, training=False)  
+    
     base_efficient_net.trainable = False
 
     x = base_efficient_net.output
@@ -148,8 +152,10 @@ if __name__ == '__main__':
         mode='min'
     )
     
+    checkpoint_path = 'model.h5'
+    
     checkpoint_cb = callbacks.ModelCheckpoint(
-        'model-{epoch:03d}-{val_accuracy:03f}.h5', 
+        checkpoint_path, 
         save_best_only=True, 
         monitor='val_accuracy'
     )
@@ -166,6 +172,33 @@ if __name__ == '__main__':
             checkpoint_cb
         ]
     )
+    
+    tensorboard_cb_fine_tune = callbacks.TensorBoard(
+        log_dir=log_dir + "_tune",
+        histogram_freq=1,
+    )
+    
+    new_model = models.load_model(checkpoint_path)
+    new_model.trainable = True
+    
+    new_model.compile(
+        optimizer=tf.keras.optimizers.Adam(1e-5),  # Low learning rate
+        loss='categorical_crossentropy',
+        metrics=['accuracy'],
+    )
+    
+    new_model.fit(
+        train_generator,
+        steps_per_epoch=steps_per_epoch,
+        epochs=epochs,
+        validation_data=validation_generator,
+        validation_steps=1,
+        callbacks=[
+            tensorboard_cb_fine_tune,
+            early_stopping_cb,
+        ]
+    )
+    
     
     save_path = model_dir + '/model'
     
