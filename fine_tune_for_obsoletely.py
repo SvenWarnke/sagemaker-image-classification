@@ -15,7 +15,7 @@ call("pip install efficientnet==1.1.1".split(" "))
 import efficientnet.tfkeras as efn
 
 NETS = {
-#     "EfficientNetB0": efn.EfficientNetB0,
+    "EfficientNetB0": efn.EfficientNetB0,
     "EfficientNetB5": efn.EfficientNetB5,
     "InceptionV3": applications.InceptionV3,
     "MobileNetV2": applications.MobileNetV2,
@@ -26,11 +26,8 @@ NETS = {
 def get_model(Net, image_shape):
     inputs = layers.Input(shape=(*image_shape, 3))
     
-    base_efficient_net = Net(weights='imagenet', include_top=False)
-    
-    # training=False sets batch-normalization layers in inference mode (note difference to setting trainable to false) 
-    base_efficient_net = base_efficient_net(inputs, training=False)  
-    
+    base_efficient_net = Net(weights='imagenet', input_tensor=inputs, include_top=False)
+
     base_efficient_net.trainable = False
 
     x = base_efficient_net.output
@@ -157,7 +154,7 @@ if __name__ == '__main__':
     checkpoint_cb = callbacks.ModelCheckpoint(
         checkpoint_path, 
         save_best_only=True, 
-        monitor='val_accuracy'
+        monitor='val_acc'  # for tensorflow 2 change to val_accuracy
     )
     
     model.fit(
@@ -195,7 +192,7 @@ if __name__ == '__main__':
         validation_steps=1,
         callbacks=[
             tensorboard_cb_fine_tune,
-            early_stopping_cb,
+            # early_stopping_cb,  # causes problems
         ]
     )
     
