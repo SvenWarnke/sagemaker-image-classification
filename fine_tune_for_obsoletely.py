@@ -10,13 +10,15 @@ from tensorflow.keras.preprocessing import image
 from tensorflow.keras import applications
 
 
-from subprocess import call
-call("pip install efficientnet==1.1.1".split(" "))
-import efficientnet.tfkeras as efn
+# import tensorflow.keras.backend as K
+
+# from subprocess import call
+# call("pip install efficientnet==1.1.1".split(" "))
+# import efficientnet.tfkeras as efn
 
 NETS = {
-    "EfficientNetB0": efn.EfficientNetB0,
-    "EfficientNetB5": efn.EfficientNetB5,
+#     "EfficientNetB0": applications.EfficientNetB0,
+#     "EfficientNetB5": applications.EfficientNetB5,
     "InceptionV3": applications.InceptionV3,
     "MobileNetV2": applications.MobileNetV2,
     "ResNet50": applications.ResNet50,
@@ -154,7 +156,7 @@ if __name__ == '__main__':
     checkpoint_cb = callbacks.ModelCheckpoint(
         checkpoint_path, 
         save_best_only=True, 
-        monitor='val_acc'  # for tensorflow 2 change to val_accuracy
+        monitor='val_accuracy'  # for tensorflow 2 change to val_accuracy, for tensorflow 1 change to val_acc
     )
     
     model.fit(
@@ -170,12 +172,19 @@ if __name__ == '__main__':
         ]
     )
     
+    
+    fine_tune_logdir = log_dir + "/tune"
+    print(fine_tune_logdir)
     tensorboard_cb_fine_tune = callbacks.TensorBoard(
-        log_dir=log_dir + "_tune",
+        log_dir=fine_tune_logdir,
         histogram_freq=1,
     )
     
-    new_model = models.load_model(checkpoint_path)
+    
+    
+#     K.clear_session()  # to fix bug in tensorboard callback
+    
+    new_model = models.load_model(checkpoint_path) 
     new_model.trainable = True
     
     new_model.compile(
@@ -190,10 +199,10 @@ if __name__ == '__main__':
         epochs=epochs,
         validation_data=validation_generator,
         validation_steps=1,
-        callbacks=[
-            tensorboard_cb_fine_tune,
-            # early_stopping_cb,  # causes problems
-        ]
+#         callbacks=[
+#             tensorboard_cb_fine_tune,
+#             # early_stopping_cb,  # causes problems
+#         ]
     )
     
     
