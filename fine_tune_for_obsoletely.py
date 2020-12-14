@@ -10,6 +10,9 @@ from tensorflow.keras.preprocessing import image
 from tensorflow.keras import applications
 
 
+import warnings
+warnings.filterwarnings("ignore")
+
 # import tensorflow.keras.backend as K
 
 # from subprocess import call
