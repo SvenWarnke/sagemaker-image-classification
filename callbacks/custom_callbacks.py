@@ -6,7 +6,7 @@ import itertools
 import tensorflow as tf
 
 
-def plot_confusion_matrix(cm, class_names):
+def plot_confusion_matrix(cm):
     """
     Returns a matplotlib figure containing the plotted confusion matrix.
 
@@ -19,9 +19,6 @@ def plot_confusion_matrix(cm, class_names):
     plt.imshow(cm, interpolation='nearest', cmap=plt.cm.Blues)
     plt.title("Confusion matrix")
     plt.colorbar()
-    tick_marks = np.arange(len(class_names))
-    plt.xticks(tick_marks, class_names, rotation=45)
-    plt.yticks(tick_marks, class_names)
 
     # Normalize the confusion matrix.
     cm = np.around(cm.astype('float') / cm.sum(axis=1)[:, np.newaxis], decimals=2)
@@ -67,17 +64,17 @@ def plot_to_image(figure):
 
 class ConfusionMatrixCallback(tf.keras.callbacks.Callback):
 
-    def __init__(self, file_writer):
+    def __init__(self, file_writer, val_data):
         super().__init__()
         self.file_writer = file_writer
+        self.validation_data = val_data
 
     def on_epoch_end(self, epoch, logs=None):
-        class_names = ["one", "two"]
 
-        test_images, test_labels = next(get_validation_generator())
+        test_images, test_labels = self.validation_data
 
         # Use the model to predict the values from the test_images.
-        test_pred_raw = model.predict(test_images)
+        test_pred_raw = self.model.predict(test_images)
 
         test_pred = np.argmax(test_pred_raw, axis=1)
         test_labels = np.argmax(test_labels, axis=1)
@@ -85,12 +82,41 @@ class ConfusionMatrixCallback(tf.keras.callbacks.Callback):
         # Calculate the confusion matrix using sklearn.metrics
         cm = sklearn.metrics.confusion_matrix(test_labels, test_pred)
 
-        figure = plot_confusion_matrix(cm, class_names=class_names)
+        figure = plot_confusion_matrix(cm)
         cm_image = plot_to_image(figure)
 
         # Log the confusion matrix as an image summary.
         with self.file_writer.as_default():
             tf.summary.image("Confusion Matrix", cm_image, step=epoch)
+
+
+class SaveMisslabeledImages(tf.keras.callbacks.Callback):
+    def __init__(self, file_writer, validation_data):
+        super().__init__()
+        self.file_writer = file_writer
+        self.validation_data = validation_data
+
+    def on_train_end(self, logs=None):
+
+        test_images, test_labels = self.validation_data
+
+        # Use the model to predict the values from the test_images.
+        test_pred_raw = self.model.predict(test_images)
+
+        test_pred = np.argmax(test_pred_raw, axis=1)
+        test_labels = np.argmax(test_labels, axis=1)
+
+        for i in range(len(test_images)):
+            image = test_images[i:i+1]  # does not drop first dim, keeps it 4 dimensional
+            correct_label = test_labels[i]
+            pred_label = test_pred[i]
+            if correct_label != pred_label:
+                with self.file_writer.as_default():
+                    tf.summary.image(
+                        f"Missclassified/index={i}, correct:{correct_label}, predicted: {pred_label}",
+                        image,
+                        step=1,   # does not paste images over each other
+                    )
 
 
 class HelloWorldCallback(tf.keras.callbacks.Callback):
