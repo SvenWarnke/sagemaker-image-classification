@@ -59,7 +59,7 @@ def test_doesnt_fail():
     (x_train, y_train), (x_test, y_test) = get_data()
     model = get_model()
 
-    file_writer_cm = tf.summary.create_file_writer('logs/cm')
+    log_folder = 'logs/cm'
     model.fit(
         x_train,
         y_train,
@@ -68,7 +68,7 @@ def test_doesnt_fail():
         epochs=EPOCHS,
         callbacks=[
             custom_callbacks.HelloWorldCallback(file_writer="bla"),
-            custom_callbacks.ConfusionMatrixCallback(file_writer=file_writer_cm, val_data=(x_test, y_test)),
-            custom_callbacks.SaveMisslabeledImages(file_writer=file_writer_cm, validation_data=(x_test, y_test))
+            custom_callbacks.ConfusionMatrixCallback(log_dir=log_folder, validation_data=(x_test, y_test)),
+            custom_callbacks.SaveMisslabeledImages(log_dir=log_folder, validation_data=(x_test, y_test))
         ]
     )

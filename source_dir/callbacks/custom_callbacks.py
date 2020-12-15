@@ -64,10 +64,10 @@ def plot_to_image(figure):
 
 class ConfusionMatrixCallback(tf.keras.callbacks.Callback):
 
-    def __init__(self, file_writer, val_data):
+    def __init__(self, log_dir, validation_data):
         super().__init__()
-        self.file_writer = file_writer
-        self.validation_data = val_data
+        self.file_writer = tf.summary.create_file_writer(log_dir)
+        self.validation_data = validation_data
 
     def on_epoch_end(self, epoch, logs=None):
 
@@ -91,9 +91,9 @@ class ConfusionMatrixCallback(tf.keras.callbacks.Callback):
 
 
 class SaveMisslabeledImages(tf.keras.callbacks.Callback):
-    def __init__(self, file_writer, validation_data):
+    def __init__(self, log_dir, validation_data):
         super().__init__()
-        self.file_writer = file_writer
+        self.file_writer = tf.summary.create_file_writer(log_dir)
         self.validation_data = validation_data
 
     def on_train_end(self, logs=None):

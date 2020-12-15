@@ -10,12 +10,18 @@ from tensorflow.keras.preprocessing import image
 from tensorflow.keras import applications
 
 
+import warnings
+warnings.filterwarnings("ignore")
+
+# import tensorflow.keras.backend as K
+
 # from subprocess import call
 # call("pip install efficientnet==1.1.1".split(" "))
 # import efficientnet.tfkeras as efn
 
 NETS = {
-#     "EfficientNetB0": efn.EfficientNetB0,
+#     "EfficientNetB0": applications.EfficientNetB0,
+#     "EfficientNetB5": applications.EfficientNetB5,
     "InceptionV3": applications.InceptionV3,
     "MobileNetV2": applications.MobileNetV2,
     "ResNet50": applications.ResNet50,
@@ -36,7 +42,7 @@ def get_model(Net, image_shape):
 
     top_dropout_rate = 0.2
     x = layers.Dropout(top_dropout_rate, name="top_dropout")(x)
-    predictions = layers.Dense(2, activation='softmax')(x)
+    predictions = layers.Dense(5, activation='softmax')(x)
 
     efficient_net = models.Model(inputs=base_efficient_net.input, outputs=predictions)
 
@@ -148,10 +154,12 @@ if __name__ == '__main__':
         mode='min'
     )
     
+    checkpoint_path = 'model.h5'
+    
     checkpoint_cb = callbacks.ModelCheckpoint(
-        'model-{epoch:03d}-{val_accuracy:03f}.h5', 
+        checkpoint_path, 
         save_best_only=True, 
-        monitor='val_accuracy'
+        monitor='val_accuracy'  # for tensorflow 2 change to val_accuracy, for tensorflow 1 change to val_acc
     )
     
     model.fit(
@@ -166,6 +174,40 @@ if __name__ == '__main__':
             checkpoint_cb
         ]
     )
+    
+    
+    fine_tune_logdir = log_dir + "/tune"
+    print(fine_tune_logdir)
+    tensorboard_cb_fine_tune = callbacks.TensorBoard(
+        log_dir=fine_tune_logdir,
+        histogram_freq=1,
+    )
+    
+    
+    
+#     K.clear_session()  # to fix bug in tensorboard callback
+    
+    new_model = models.load_model(checkpoint_path) 
+    new_model.trainable = True
+    
+    new_model.compile(
+        optimizer=tf.keras.optimizers.Adam(1e-5),  # Low learning rate
+        loss='categorical_crossentropy',
+        metrics=['accuracy'],
+    )
+    
+    new_model.fit(
+        train_generator,
+        steps_per_epoch=steps_per_epoch,
+        epochs=epochs,
+        validation_data=validation_generator,
+        validation_steps=1,
+#         callbacks=[
+#             tensorboard_cb_fine_tune,
+#             # early_stopping_cb,  # causes problems
+#         ]
+    )
+    
     
     save_path = model_dir + '/model'
     
